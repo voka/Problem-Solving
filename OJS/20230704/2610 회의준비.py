@@ -53,9 +53,9 @@ for _ in range(M):
     score_board[b][a] = 1
     union_parent(a, b)
 
-for i in range(1, N+1):
-    for j in range(1, N+1):
-        for k in range(1, N+1):
+for k in range(1, N+1):
+    for i in range(1, N+1):
+        for j in range(1, N+1):
             if i == j:
                 score_board[i][j] = 0
                 continue
