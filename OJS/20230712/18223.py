@@ -10,7 +10,7 @@ for _ in range(E):
 
 
 def solve(start):
-    dist = [1e9 for _ in range(V+1)]
+    dist = [1e10 for _ in range(V+1)]
     dist[start] = 0
     myque = []
     heapq.heappush(myque, (0, start))
@@ -21,8 +21,6 @@ def solve(start):
         for (gi, ncost) in graph[cur]:
             tcost = cost + ncost
             if tcost < dist[gi]:
-                if cur == P or gi == P:
-                    print(1)
                 dist[gi] = tcost
                 heapq.heappush(myque, (tcost, gi))
     return dist
