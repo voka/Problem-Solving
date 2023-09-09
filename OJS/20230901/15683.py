@@ -25,7 +25,7 @@ for i in range(N):
 cctv_n = len(cctv_point)
 
 results = []
-def make_product(idx,temp):
+def make_product(idx,temp): # 감시할 수 있는 방향 전체 탐색ㅋㅌ
     if idx == cctv_n:
         results.append(temp)
         return
