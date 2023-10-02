@@ -50,47 +50,6 @@ for i in range(M):
     y -= 1
     x -= 1
     tree_maps[y][x].append(z)
-# 나무
-# tree_dict = {}
-
-# die_dict = {}
-# def spring():
-#     for x, y in tree_dict:
-#         num = len(tree_dict[(x, y)])
-#         temp = []
-#         for i in range(num):
-#             cur = heapq.heappop(tree_dict[(x, y)])
-#             if maps[y][x] < cur:  # 나이보다 작으면
-#                 if (x, y) in die_dict:
-#                     die_dict[(x, y)].append(cur)
-#                 else:
-#                     die_dict[(x, y)] = [cur]  # 죽은 나무에 저장
-#             else:
-#                 maps[y][x] -= cur
-#                 heapq.heappush(temp, cur+1)
-#         tree_dict[(x, y)] = temp
-
-
-# def summer():
-#     for x, y in die_dict:
-#         for tape in die_dict[(x, y)]:
-#             maps[y][x] += (tape // 2)
-
-# def spring_and_summer():
-#     for x, y in tree_dict:
-#         num = len(tree_dict[(x, y)])
-#         die_tree = 0
-#         temp = []
-#         for i in range(num):
-#             cur = heapq.heappop(tree_dict[(x, y)])
-#             if maps[y][x] < cur:  # 나이보다 작으면
-#                 die_tree += (cur // 2)
-#             else:
-#                 maps[y][x] -= cur
-#                 heapq.heappush(temp, cur+1)
-#         tree_dict[(x, y)] = temp
-#         maps[y][x] += die_tree
-
 
 dx = [1, 1, -1, -1, 0, 1, -1, 0]
 dy = [1, -1, 1, -1, 1, 0, 0, -1]
@@ -101,42 +60,8 @@ def splash(x, y):
         nx, ny = x + dx[i], y + dy[i]
         if 0 <= nx < N and 0 <= ny < N:
             tree_maps[ny][nx].appendleft(1)
-            # if (nx, ny) in tree_dict:
-            #     tree_dict[(nx, ny)].appendleft(1)
-            # else:
-            #     tree_dict[(nx, ny)] = deque([1])
 
 
-# def spring_and_summer_and_fall_winter():
-#     splash_list = []
-#     for x, y in tree_dict:
-#         num = len(tree_dict[(x, y)])
-#         die_tree = 0
-#         for i in range(num):
-#             cur = tree_dict[(x, y)].popleft()
-#             if maps[y][x] < cur:  # 나이보다 작으면
-#                 die_tree += (cur // 2)
-#             else:
-#                 maps[y][x] -= cur
-#                 if (cur + 1) % 5 == 0:
-#                     splash_list.append((x, y))
-#             tree_dict[(x, y)].append(cur+1)
-#         maps[y][x] += die_tree
-#     for x, y in splash_list:
-#         splash(x, y)
-
-# def fall():
-#     splash_list = []
-#     for x, y in tree_dict:
-#         num = len(tree_dict[(x, y)])
-#         for _ in range(num):
-#             cur = heapq.heappop(tree_dict[(x, y)])
-#             if cur % 5 == 0:
-#                 splash_list.append((x, y))
-#             heapq.heappush(tree_dict[(x, y)], cur)
-#     for x, y in splash_list:
-#         splash(x, y)
-# spring summer, fall, winter
 def ssfw():
     splash_list = []
     for i in range(N):
@@ -167,25 +92,6 @@ def count_tree():
 
 
 for i in range(K):
-    # print("start : " + str(i+1))
-    # spring()
-    # print("end spring")
-    # pprint(tree_maps)
-    # pprint(maps)
-    # summer()
-    # print("end summer")
-    # pprint(tree_dict)
-    # pprint(maps)
-    # spring_and_summer()
-    # fall()
-    # print("end fall")
-    # pprint(tree_dict)
-    # pprint(maps)
-    # spring_and_summer_and_fall()
-    # winter()
-    # print("end winter")
-    # pprint(tree_dict)
-    # pprint(maps)
     ssfw()
 
 print(count_tree())
