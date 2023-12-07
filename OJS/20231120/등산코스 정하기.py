@@ -30,7 +30,7 @@ def solution(n, paths, gates, summits):
         graph[i].append((j,w))
         graph[j].append((i,w))
     for g in gates:
-        dijkstra(dist,n, graph, g, gate_set, summit_set)
+        dijkstra(dist,graph, g, gate_set, summit_set)
     #print(dist)
     for summit in summits:
         if min_intensity > dist[summit]:

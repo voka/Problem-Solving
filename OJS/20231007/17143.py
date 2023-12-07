@@ -29,9 +29,48 @@ for i in range(M):
 # 1: 위, 2: 아래, 3: 오른쪽, 4: 왼쪽
 dx = [0,0,0,1,-1]
 dy = [0,-1,1,0,0]
-
+# 반복문 버전
 def move_shark(x,y,s,d):
     i = 0
+    while i < s:
+        i += 1
+        nx,ny = x+dx[d], y+dy[d]
+        if 1 <= nx <= C and 1 <= ny <= R: # 방향그대로 진행 가능한 경우
+            x,y = nx,ny
+        else:# 방향을 바꿔야 하는 경우에는
+            if d == 1 or d == 2:
+                d = 3 - d
+            else:
+                d = 7 - d 
+            i -= 1
+    return x,y,s,d
+
+# 인덱스 계산 버전
+def move_shark_index(x,y,s,d):
+    # 1. 속력 만큼 더한다.
+    nx,ny = x + dx[d]*s, y + dy[d]*s
+    # 방향 1번 바꿔야 하는 경우 
+    """
+    r,c = 4,6
+    x,y -> 1,3
+    s,d = 4,2(아래쪽)
+    
+    nx,ny = 1,3 + 4 = >1,7
+    # 위 아래 방향일 경우
+    mox = ny // r
+    7 // 4 -> 1 -> 방향을 1번만 바꿔도 된다. 
+    rest = ny % r 
+    7 % 4 -> 3 -> 반대 방향으로 3칸 전진해야 한다.
+    d =
+    
+    # 오른쪽 왼쪽 방향일 경우 
+    mox = nx // c 
+    
+    
+    """    
+    i = 0
+    
+    
     while i < s:
         i += 1
         nx,ny = x+dx[d], y+dy[d]
