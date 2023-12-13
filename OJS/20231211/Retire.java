@@ -23,7 +23,31 @@ public class Retire {
             if(i+T[i]<=N){
                 dp[i+T[i]] = Math.max(answer + P[i], dp[i+T[i]]);
             }
+            // System.out.printf("%d, %d\n",i,answer);
+            // for(int j=0;j<=N;++j){
+            //     System.out.printf("%d ",dp[j]);
+            // }
         }
-        System.out.println(answer);
+        System.out.println(dp[N]);
     }   
 }
+/**
+ * N = 1, answer = 0
+ * 0   0   0   10   0   0   0   0
+ * N = 2, answer = 0
+ * 0   0   0   10   0   0   20   0
+ * N = 3, answer = 10
+ * 0   0   0   10   0   0   20   0
+ * N = 4, answer = 30
+ * 0   0   0   10   30   0   20   0
+ * N = 5, answer = 30
+ * 0   0   0   10   30   0   45   0
+ * N = 6, answer = 45
+ * 0   0   0   10   30   0   45   0
+ * N = 7, answer = 45
+ * 0   0   0   10   30   0   45   0
+ * N = 8, answer = 45
+ * 0   0   0   10   30   0   45   45
+ * 
+ * 
+ */
