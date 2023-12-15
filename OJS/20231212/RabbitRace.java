@@ -90,7 +90,7 @@ class Point implements Comparable<Point>{
 }
 
 
-public class Main {
+public class RabbitRace {
     static int Q,N,M,P;
     static long totalSum = 0;
     static int [] x; // 토끼 현재 x 좌표;
