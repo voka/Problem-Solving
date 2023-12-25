@@ -36,39 +36,24 @@ public class Main {
         // 순방향 탐색
         leftBig.add(new Pair(0, list[0]));
         for(int i=1;i<N;++i){
-            Pair cur = new Pair(-1, -1);
-            while(!leftBig.empty()){
-                cur = leftBig.pop();
-                if(list[i] < cur.val){
-                    leftBig.add(cur);
-                    break;
-                }
+            while(!leftBig.empty() && leftBig.peek().val <= list[i]){// 자기 보다 낮은 탑은 어짜피 다음 탑에서도 보이지 않으므로 제거
+                leftBig.pop();
             }
             leftToRight[i] = leftBig.size();
-            if(leftBig.size() != 0) {
-                int dist = Math.abs(leftBig.peek().idx - i);
-                if(dist < see[i][1]){
-                    see[i][0] = leftBig.peek().idx;
-                    see[i][1] = dist;
-                }else if((dist == see[i][1]) && leftBig.peek().idx < see[i][0]){
-                    see[i][0] = leftBig.peek().idx;
-                }
+            if(leftBig.size() != 0) {// 처음에는 거리, 인덱스 그냥 입력
+                see[i][0] = leftBig.peek().idx;
+                see[i][1] = Math.abs(leftBig.peek().idx - i);
             }
             leftBig.add(new Pair(i, list[i]));
         }
         // 역방향 탐색
         rightBig.add(new Pair(N-1, list[N-1]));
-        for(int i=N-2;i>=0;--i){
-            Pair cur = new Pair(-1, -1);
-            while(!rightBig.empty()){
-                cur = rightBig.pop();
-                if(list[i] < cur.val){
-                    rightBig.add(cur);
-                    break;
-                }
+        for(int i=N-2;i>=0;--i){;
+            while(!rightBig.empty() && rightBig.peek().val <= list[i]){// 자기 보다 낮은 탑은 어짜피 다음 탑에서도 보이지 않으므로 제거
+                rightBig.pop();
             }
             rightToLeft[i] = rightBig.size();
-            if(rightBig.size() != 0) {
+            if(rightBig.size() != 0) { // 거리, 인덱스 검사
                 int dist = Math.abs(rightBig.peek().idx - i);
                 if(dist < see[i][1]){
                     see[i][0] = rightBig.peek().idx;
