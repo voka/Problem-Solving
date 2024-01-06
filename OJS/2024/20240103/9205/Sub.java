@@ -30,11 +30,7 @@ public class Sub {
     public static void up(int a, int b){
         int ap = fp(a);
         int bp = fp(b);
-        if(ap < bp){
-            parents[b] = ap;
-        }else{
-            parents[a] = bp;
-        }
+        parents[ap] = bp;
     }
     public static void main(String[] args) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -63,12 +59,12 @@ public class Sub {
             Point ep = new Point(Integer.parseInt(temp[0]),Integer.parseInt(temp[1]));
             // 입력 끝
             
-						// 시작점, 끝점 union
+			// 시작점, 끝점 union
             if(checkDistance(sp, ep)) {
                 answer[idx++] = "happy";
                 continue;
             }
-						// 각 편의점들끼리 union
+			// 각 편의점들끼리 union
             for(int i=0;i<n;++i){
                 for(int j=i+1;j<n;++j){
                     if(fp(i+1) != fp(j+1) && checkDistance(stores.get(i), stores.get(j))){
@@ -78,23 +74,18 @@ public class Sub {
             }
             
             for(int i=0;i<n;++i){
-								// 시작점과 각 편의점들 union
+				// 시작점과 각 편의점들 union
                 if(fp(0) != fp(i+1) && checkDistance(sp,stores.get(i))){
                     up(0, i+1);
                 }
-								// 끝점과 각 편의점들 union
+				// 끝점과 각 편의점들 union
                 if(fp(n+1) != fp(i+1) && checkDistance(ep,stores.get(i))){
                     up(n+1, i+1);
                 }
             }
-						// parents 배열 업데이트 안된 경우를 대비
-            for(int i=0;i<n+2;++i){
-                fp(i);
-            }
-			for(int i=0;i<n+2;++i){
-                fp(i);
-            }
-            if(parents[0] == parents[n+1]) answer[idx++] = "happy";
+			// parents 배열 업데이트 안된 경우를 대비
+            
+            if(fp(0) == fp(n+1)) answer[idx++] = "happy";
             else answer[idx++] = "sad";
         }
         for(int i=0;i<answer.length;++i){
