@@ -65,12 +65,12 @@ public class Main {
         }
         return dist;
     }
-    static void findShortestPathVertex(int[] sStart, int[] dStart){ // 최단 경로에 포함된 경로들을 확인하는 함수
+    static void findShortestPathVertex(int[] sDist, int[] dDist){ // 최단 경로에 포함된 경로들을 확인하는 함수
         for(Path path : paths){
-            int sPath = sStart[path.u];
-            int dPath = dStart[path.v];
+            int sPath = sDist[path.u];
+            int dPath = dDist[path.v];
             // S -> u  + u -> v + v -> D 까지의 거리가 최단경로의 합과 같다면 최단 경로에 포함된 경로다.
-            if(sPath + path.cost + dPath == sStart[D]){
+            if(sPath + path.cost + dPath == sDist[D]){
                 pathCanNotUse[path.u][path.v] = true;
             }
         }
@@ -110,18 +110,18 @@ public class Main {
                 rGraph.get(v).add(new Pair(u, p));
                 paths[i] = new Path(u, v, p);
             }
-            int[] sStart = findShortestPath(S,sGraph); // 첫번째 최단 경로 탐색 
-            //System.out.println("sStart ===============");
-            //printArray(sStart);
+            int[] sDist = findShortestPath(S,sGraph); // 첫번째 최단 경로 탐색 
+            //System.out.println("sDist ===============");
+            //printArray(sDist);
             //이때 최단 경로가 발견되지 않으면 정답은 -1 이다. 
-            if(sStart[D] == Integer.MAX_VALUE){
+            if(sDist[D] == Integer.MAX_VALUE){
                 sb.append(-1).append('\n');
                 continue;
             }
-            int[] dStart = findShortestPath(D,rGraph); // 역방향 퇴단 경로 탐색
-            //System.out.println("dStart ===============");
-            //printArray(dStart);
-            findShortestPathVertex(sStart, dStart); // 최단 경로에 포함된 간선들 제거하기
+            int[] dDist = findShortestPath(D,rGraph); // 역방향 퇴단 경로 탐색
+            //System.out.println("dDist ===============");
+            //printArray(dDist);
+            findShortestPathVertex(sDist, dDist); // 최단 경로에 포함된 간선들 제거하기
 
             int[] answer = findShortestPath(S,sGraph); // 다시 최단 경로를 찾는다.
             
