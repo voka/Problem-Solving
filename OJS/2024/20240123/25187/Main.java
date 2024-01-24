@@ -50,15 +50,9 @@ public class Main {
             }
         }
         for(int i=1;i<=N;++i){
-            findP(i); /// 여기서 최종 부모 업데이트 안해주면 틀림. 혹은 밑에서 parents[cur] 대신 findP(cur) 써야 할듯. 
-            //System.out.printf("%d ",parents[i]);
+            findP(i); 
             if(parents[i] != i) value[parents[i]] += value[i];
         }
-        // for(int i=1;i<=N;++i){
-        //     System.out.printf("%d ",value[i]);
-        // }
-        // System.out.println();
-        
         for(int q=0;q<Q;++q){
             int cur = Integer.parseInt(br.readLine());
             if(value[parents[cur]] > 0) sb.append('1');
