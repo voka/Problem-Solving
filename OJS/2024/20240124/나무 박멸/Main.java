@@ -4,33 +4,6 @@ import java.io.InputStreamReader;
 import java.util.StringTokenizer;
 
 
-// class Point implements Comparable<Point>{
-//     int x; 
-//     int y;
-//     int kill;
-//     public Point(int x, int y, int kill){
-//         this.x = x;
-//         this.y = y;
-//         this.kill = kill;
-//     }
-//     @Override
-//     public int compareTo(Point p){
-//         if(this.kill < p.kill){ // 킬 수가 많은 순
-//             return 1;
-//         }else if(this.kill > p.kill){
-//             return -1;
-//         }else{
-//             if(this.x > p.x) return 1; // 행이 작은 순
-//             else if(this.x < p.x) return -1; 
-//             else{
-//                 if(this.y > p.y) return 1; // 열이 작은 순
-//                 else if(this.y < p.y) return -1;
-//                 return 0; 
-//             }
-//         }
-//     }
-// }
-
 public class Main {
     static int n,m,k,c,score = 0;
     static int[] dx = {1,0,-1,0}, dy = {0,1,0,-1}, kdx = {1,1,-1,-1}, kdy = {1,-1,1,-1};
@@ -74,7 +47,7 @@ public class Main {
             System.out.println();
         }
     }
-    static void minusPoison(){
+    static void minusPoison(){ //제초제를 c년 후에 없어지게 만드는 함수
 
         for(int i=0;i<n;++i){
             for(int j=0;j<n;++j){
@@ -85,7 +58,7 @@ public class Main {
         }
 
     }
-    static void selectAndKillPoint(){
+    static void selectAndKillPoint(){ // 제초제를 뿌렸을때 가장 많이 나무를 없앨 수 있는 Point 찾기
         int bestKill = 0;
         int bestX = n;
         int bestY = n;
@@ -114,18 +87,6 @@ public class Main {
         kill(bestX, bestY, 0);
 
     }
-    static int countOneDirKill(int x, int y, int d, int cnt){
-        int result = map[x][y];
-        if(result == 0) return 0; // 나무가 없는 곳이라면 더이상 제초제가 확산되지 않음.
-        if(cnt == k) return result;
-        int nx = x + kdx[d];
-        int ny = y + kdy[d];
-        // 범위를 벗어나지 않고, 나무가 있는곳에
-        if(checkRange(nx, ny) && map[nx][ny] > 0){
-            result += countOneDirKill(nx, ny,d, cnt + 1);
-        }
-        return result;
-    }
     static int countKill(int x, int y, int cnt){
         int result = map[x][y];
         if(result == 0) return 0; // 나무가 없는 곳이라면 더이상 제초제가 확산되지 않음.
@@ -139,22 +100,21 @@ public class Main {
         }
         return result;
     }
-    static void oneDirKill(int x, int y, int d, int cnt){
-        poisonMap[x][y] = c + 1;
-        if(map[x][y] == 0) return; // 나무가 없는 곳이라면 더이상 제초제가 확산되지 않음.
-        map[x][y] = 0;
-        if(cnt == k) return;
+    static int countOneDirKill(int x, int y, int d, int cnt){
+        int result = map[x][y];
+        if(result == 0) return 0; // 나무가 없는 곳이라면 더이상 제초제가 확산되지 않음.
+        if(cnt == k) return result;
         int nx = x + kdx[d];
         int ny = y + kdy[d];
         // 범위를 벗어나지 않고, 나무가 있는곳에
-        if(checkRange(nx, ny) && map[nx][ny] >= 0){
-            //System.out.printf("next => %d, %d\n", nx, ny);
-            oneDirKill(nx, ny, d, cnt+1);
+        if(checkRange(nx, ny) && map[nx][ny] > 0){
+            result += countOneDirKill(nx, ny,d, cnt + 1);
         }
+        return result;
     }
     static void kill(int x, int y, int cnt){ // 한 정점에서 뻗어나가는 제초제
         poisonMap[x][y] = c + 1; // 매년 -1 을 해주기 위해 + 1을 해줌
-        if(map[x][y] == 0) return; // 나무가 없는 곳이라면 더이상 제초제가 확산되지 않음.
+        if(map[x][y] <= 0) return; // 나무가 없는 곳이라면 더이상 제초제가 확산되지 않음.
         map[x][y] = 0;
         for(int i=0;i<4;++i){
             int nx = x + kdx[i];
@@ -166,6 +126,19 @@ public class Main {
             }
         }
     }
+    static void oneDirKill(int x, int y, int d, int cnt){
+        if(map[x][y] >= 0) poisonMap[x][y] = c + 1;
+        if(map[x][y] <= 0) return; // 나무가 없는 곳이라면 더이상 제초제가 확산되지 않음.
+        map[x][y] = 0;
+        if(cnt == k) return;
+        int nx = x + kdx[d];
+        int ny = y + kdy[d];
+        // 범위를 벗어나지 않고, 나무가 있는곳에
+        if(checkRange(nx, ny) && map[nx][ny] >= 0){
+            //System.out.printf("next => %d, %d\n", nx, ny);
+            oneDirKill(nx, ny, d, cnt+1);
+        }
+    }
     static boolean checkRange(int x, int y){
         return (x >= 0) && (y >=0 ) && (x < n) && (y < n);
     }
@@ -173,7 +146,7 @@ public class Main {
         for(int i=0;i<n;++i){
             for(int j=0;j<n;++j){
                 if(map[i][j] > 0){ // 나무가 있는 칸일 경우 증식 시작
-                    int near = 0;
+                    int near = 0; // 증식 가능한 장소 개수
                     for(int d=0;d<4;++d){
                         int nx = i + dx[d];
                         int ny = j + dy[d];
@@ -181,12 +154,12 @@ public class Main {
                         if(checkRange(nx,ny) && map[nx][ny] > 0){
                             map[i][j] += 1;
                         }
-                        // 범위를 벗어나지 않고, 나무와 벽이 없는 곳이며, 제초제의 영향이 없는 곳일 경우 번식 가능
+                        // 범위를 벗어나지 않고, 나무와 벽이 없는 곳이며, 제초제의 영향이 없는 곳일 경우 증식 가능
                         if(checkRange(nx,ny) && map[nx][ny] == 0 && poisonMap[nx][ny] == 0){
-                            near += 1;
+                            near += 1; // 증식 가능 장소 개수 증가
                         }
                     }
-                    if(near != 0){
+                    if(near != 0){ // 증식이 가능할 경우에
                         int plus = map[i][j] / near;// 주번 증식 가능 장소 만큼 나누기
                         for(int d=0;d<4;++d){
                             int nx = i + dx[d];
