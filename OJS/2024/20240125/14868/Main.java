@@ -18,7 +18,8 @@ class Pair{
 
 public class Main {
     static int N, K;
-    static Set<Integer> keySet = new HashSet<>(); 
+    //촤초 문명 지역 중 결합되지 않은 문명만 남겨놓을 Set
+    static Set<Integer> keySet = new HashSet<>();
     static boolean[][] visited;
     static int[] parents, dx = {1,0,-1,0}, dy = {0,1,0,-1};
     static Queue<Pair> checkPoint = new LinkedList<>();
@@ -35,8 +36,7 @@ public class Main {
             int a = Integer.parseInt(st.nextToken());
             int b = Integer.parseInt(st.nextToken());
             b = N+1 - b;
-            keySet.add((b-1) * N + a);
-            //System.out.println(keySet);
+            keySet.add(changePoint(b, a));
             checkPoint.add(new Pair(b, a));
             visited[b][a] = true;
         }
@@ -51,13 +51,109 @@ public class Main {
             //printP();
             //printVisited(); 
             //System.out.println(keySet);
-            if(keySet.size() == 1) break; // 문명의 개수가 1개가 된다면 나머지 문명들이 모두 통합된것
+            // 문명의 개수가 1개가 된다면 나머지 문명들이 모두 통합된것
+            if(keySet.size() == 1) break; 
             bfs();
             //System.out.println(day);
             //System.out.println(count);
             day++;
         }
         System.out.println(day);
+    }
+    static int changePoint(int x, int y){
+        return (x-1) * N + y;
+    }
+    static int findP(int x){
+        if(parents[x] != x){
+            parents[x] = findP(parents[x]);
+        }
+        return parents[x];
+    }
+
+    static void unionP(int a, int b){
+        a = findP(a);
+        b = findP(b);
+        // 서로 다른 최초 문명이 결합하는 경우 
+        // 두 문명 숫자 중 작은 것을 남기고 큰 것을 지우고 작은 것과 결합시킨다.
+        if(keySet.contains(a) && keySet.contains(b)){
+            if(a > b){ 
+                parents[a] = b;
+                keySet.remove(a);
+            }else{
+                parents[b] = a;
+                keySet.remove(b);
+            }
+            // 하나의 좌표는 미개지역이고 다른 하나는 문명지역이라면 
+        }else if(keySet.contains(a)){ 
+            parents[b] = a; // 미개지역을 문명지역에 결합시킨다.
+        }else if(keySet.contains(b)){
+            parents[a] = b;
+        }
+    }
+    // 배열의 좌표 범위를 검사하는 함수
+    static boolean checkRange(int x, int y){
+        return (x>=1) && (y>=1) && (x<=N) && (y<=N);
+    }
+    static void firstDay(){ // 가장 첫 날에 인접한 문명은 결합시킨다.
+        int end = checkPoint.size();
+        for(int s=0; s< end;++s){
+            Pair cur = checkPoint.poll();
+            int c = changePoint(cur.x,cur.y);
+            for(int i=0;i<4;++i){
+                int nx = cur.x + dx[i];
+                int ny = cur.y + dy[i];
+                if(checkRange(nx,ny)){
+                    if(visited[nx][ny]){ //문명 지역 끼리 만났다면
+                        int next = changePoint(nx, ny);
+                        if(findP(c) != findP(next)){ // 서로 다른 문명인 경우에만 결합시킨다.
+                            unionP(c,next);
+                        }
+                    }
+                }
+            }
+            checkPoint.add(cur);
+        }
+    }
+     //checkPoint에 들어있는 문명 지역에서 주변으로 문명을 전파한다.
+    static void bfs(){
+        int end = checkPoint.size();
+        for(int s=0; s< end;++s){
+            Pair cur = checkPoint.poll();
+            int c = changePoint(cur.x,cur.y);
+            for(int i=0;i<4;++i){
+                int nx = cur.x + dx[i];
+                int ny = cur.y + dy[i];
+                if(checkRange(nx,ny)){ // 범위를 확인하고
+                    int next = changePoint(nx, ny);
+                    // (문명 지역 vs 문명 지역) or (문명 지역 vs 미개 지역) 인 경우 모두
+                    // 문명을 결합, 전파해야 하므로 visited 조건이 따로 필요하지 않다.
+                    if(findP(c) != findP(next)){
+                        unionP(c,next);
+                        check(nx, ny);
+                    } // 미개지역 vs 문명 지역
+                    if(!visited[nx][ny]){
+                        checkPoint.add(new Pair(nx, ny));
+                        visited[nx][ny] = true;
+                    }
+                }
+            }
+        }
+    }// 인접한 문명이 있는지 확인하는 함수이다. 
+    static void check(int x, int y){ 
+        int c = changePoint(x,y);
+        for(int i=0;i<4;++i){
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+            if(checkRange(nx,ny)){// 범위를 확인하고
+                int next = changePoint(nx, ny);
+                int cP = findP(c);
+                int nP = findP(next);
+                if(cP != nP && keySet.contains(cP) && keySet.contains(nP)){ 
+                    // 서로 다른 최조 문명 지역인 칸끼리 인접해 있을 경우에만 하나의 문명으로 결합한다. 
+                    unionP(c,next);
+                }
+            }
+        }
     }
     static void printVisited(){
         System.out.println();
@@ -79,121 +175,4 @@ public class Main {
         }
         System.out.println();
     }
-
-    static int findP(int x){
-        if(parents[x] != x){
-            parents[x] = findP(parents[x]);
-        }
-        return parents[x];
-    }
-    static void unionP(int a, int b){
-        a = findP(a);
-        b = findP(b);
-        //System.out.printf("%d, %d\n", a, b);
-        if(keySet.contains(a) && keySet.contains(b)){
-            if(a > b){
-                parents[a] = b;
-                keySet.remove(a);
-            }else{
-                parents[b] = a;
-                keySet.remove(b);
-            }
-        }else if(keySet.contains(a)){
-            parents[b] = a;
-        }else if(keySet.contains(b)){
-            parents[a] = b;
-        }
-    }
-    static boolean checkRange(int x, int y){
-        return (x>=1) && (y>=1) && (x<=N) && (y<=N);
-    }
-    static void firstDay(){
-        int end = checkPoint.size();
-        for(int s=0; s< end;++s){
-            Pair cur = checkPoint.poll();
-            int c = (cur.x-1) * N + cur.y;
-            for(int i=0;i<4;++i){
-                int nx = cur.x + dx[i];
-                int ny = cur.y + dy[i];
-                if(checkRange(nx,ny)){
-                    if(visited[nx][ny]){ // 문명인곳을 갔을 경우
-                        int next = (nx-1) * N + ny;
-                        //System.out.printf("%d, %d\n", c, next);
-                        if(findP(c) != findP(next)){ // 서로 다른 문명인 경우
-                            unionP(c,next);
-                        }
-                    }
-                }
-            }
-            checkPoint.add(cur);
-        }
-    }
-    static void bfs(){
-        int end = checkPoint.size();
-        for(int s=0; s< end;++s){
-            Pair cur = checkPoint.poll();
-            int c = (cur.x-1) * N + cur.y;
-            for(int i=0;i<4;++i){
-                int nx = cur.x + dx[i];
-                int ny = cur.y + dy[i];
-                if(checkRange(nx,ny)){
-                    int next = (nx-1) * N + ny; 
-                    if(findP(c) != findP(next)){ // 서로 다른 문명인 경우
-                        unionP(c,next);
-                        check(nx, ny);
-                    }
-                    if(!visited[nx][ny]){ // 문명이 아닌곳을 갔을 경우
-                        checkPoint.add(new Pair(nx, ny));
-                        visited[nx][ny] = true;
-                    }
-                }
-            }
-        }
-    }
-    static void check(int x, int y){
-        int c = (x-1) * N + y;
-        for(int i=0;i<4;++i){
-            int nx = x + dx[i];
-            int ny = y + dy[i];
-            if(checkRange(nx,ny)){
-                int next = (nx-1) * N + ny; 
-                int cP = findP(c);
-                int nP = findP(next);
-                if(cP != nP && keySet.contains(cP) && keySet.contains(nP)){ // 서로 다른 문명인 경우
-                    unionP(c,next);
-                }
-            }
-        }
-    }
 }
-/**
- * 
- 
-0 0 0
-2 0 4
-1 0 3 
-
-0 0 0 => day 0
-1 0 3
-1 0 3
-
-
-=> day 0
-1 0 0 0 2
-0 0 0 0 0
-0 0 0 0 0
-0 0 0 0 0
-3 0 0 0 4
-=> day 1
-1 1 0 2 2
-1 0 0 0 2
-0 0 0 0 0
-3 0 0 0 4
-3 3 0 4 4
-=> day 2
-1 1 1 1 1
-1 1 0 1 1
-1 0 0 0 1
-1 1 0 1 1
-1 1 1 1 1
- */
