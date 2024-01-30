@@ -71,7 +71,7 @@ public class Main {
         if(preKeySize != myKeys.size()) System.out.printf("%d %d\n",day,countAllFire());
         else System.out.printf("%d %d\n",preDay,preFireSize);
     }   
-    static int countAllFire(){
+    static int countAllFire(){ // bfs로 모든 불의 크기 구하기
         boolean[][] newVisited  = new boolean[N][M]; 
         int fire = 0;
         for(int i=0;i<N;++i){
@@ -93,7 +93,8 @@ public class Main {
     static void unionP(int a, int b){
         a = parents[a];
         b = parents[b];
-        if(myKeys.contains(a) && myKeys.contains(b)){
+        // 불의 시작점을 항상 부모의 우선순위로 두기
+        if(myKeys.contains(a) && myKeys.contains(b)){ 
             if(a < b){
                parents[b] = a;
                myKeys.remove(b); 
@@ -159,6 +160,7 @@ public class Main {
         return count;
 
     }
+    //이번에 나무 -> 불로 바뀔 좌표들만 뽑아내서 다음 불이될 나무들을 찾고 불과 불을 Union해줌.
     static void solve(){
         int size = nextCheckPoint.size();
         for(int i=0;i<size;++i){
