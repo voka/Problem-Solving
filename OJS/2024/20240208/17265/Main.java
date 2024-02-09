@@ -38,7 +38,6 @@ public class Main {
                     int sy = fy + ddy[j];
                     if(checkRange(sx, sy)){
                         int nextScore = calNum(score,board[fx][fy],board[sx][sy]);
-                        //System.out.printf("%d, %d -> %d, %d -> %d, %d ==> %d\n", x, y, fx, fy, sx, sy, nextScore);
                         dfs(sx,sy,nextScore);
                     }
                 }
@@ -72,14 +71,6 @@ public class Main {
                 }
             }
         }
-
-
-        // for(int i=0;i<N;++i){
-        //     for(int j=0;j<N;++j){
-        //         System.out.printf("%d ",board[i][j]);
-        //     }
-        //     System.out.println();
-        // }
         dfs(0, 0, board[0][0]);
         System.out.printf("%d %d\n", maxAns, minAns);
 
