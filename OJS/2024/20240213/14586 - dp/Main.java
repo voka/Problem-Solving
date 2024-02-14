@@ -15,11 +15,7 @@ class Pair implements Comparable<Pair>{
     public int compareTo(Pair o) {
         if(this.x > o.x) return 1;
         else if(this.x < o.x) return -1;
-        else{
-            if(this.h < o.h) return 1;
-            else if(this.h > o.h) return -1;
-            return 0;
-        }
+        return 0;
     }
     
 }
@@ -66,7 +62,7 @@ public class Main {
             return dp[i][j];
         }else{
             for(int k=i;k<=j;++k){
-                dp[i][j] = Math.min(dp[i][j], solve(i, left[k] - 1) + solve(left[k], right[k]) + solve(right[k] + 1, j));
+                dp[i][j] = Math.min(dp[i][j], solve(i, k) + solve(k+1, j));
             }
         }
         return dp[i][j];

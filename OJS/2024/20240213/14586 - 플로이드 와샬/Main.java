@@ -15,11 +15,7 @@ class Pair implements Comparable<Pair>{
     public int compareTo(Pair o) {
         if(this.x > o.x) return 1;
         else if(this.x < o.x) return -1;
-        else{
-            if(this.h < o.h) return 1;
-            else if(this.h > o.h) return -1;
-            return 0;
-        }
+        return 0;
     }
     
 }
