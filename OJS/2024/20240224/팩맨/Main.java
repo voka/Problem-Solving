@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.*;
 public class Main {
     static int MAX_MONSTER_NUM = 1000001;
-    static int m, t, fx, fy;
+    static int m, t, px, py;
     static int CUR_MONSTER = 0;// 이번 턴에 사는 몬스터 
     static int CUR_DIE_MONSTER = 0;// 이번 턴에 죽는 몬스터 
     static int CUR_COPY_MONSTER = 0;// 이번 턴에 복제되는 몬스터 수
@@ -13,8 +13,8 @@ public class Main {
     static int[] monsterDir, monsterX, monsterY;
     static int[] moveDir, moveX, moveY;
     static int[] mdx = {-1,-1,0,1,1,1,0,-1}, mdy = {0,-1,-1,-1,0,1,1,1}; // 상에서 왼쪽으로 45씩 
-    static int[] fdx = {-1,0,1,0}, fdy = {0,-1,0,1}; //상, 좌, 하, 우 방 향
-    static int[] fVisitX, fVisitY;
+    static int[] pdx = {-1,0,1,0}, pdy = {0,-1,0,1}; //상, 좌, 하, 우 방 향
+    static int[] pVisitX, pVisitY;
     public static void main(String[] args) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         init();
@@ -22,8 +22,8 @@ public class Main {
         m = Integer.parseInt(st.nextToken());
         t = Integer.parseInt(st.nextToken());
         st = new StringTokenizer(br.readLine());
-        fx = Integer.parseInt(st.nextToken())-1;
-        fy = Integer.parseInt(st.nextToken())-1;
+        px = Integer.parseInt(st.nextToken())-1;
+        py = Integer.parseInt(st.nextToken())-1;
         MONSTER = m;
         for(int i=0;i<m;++i){
             st = new StringTokenizer(br.readLine());
@@ -34,21 +34,21 @@ public class Main {
         }
         //printMonster();
         for(int i=0;i<t;++i){
+            //System.out.printf("T : %d ===========\n", i+1);
             // 이동했을때 map 초기화
             initMoveMap();
             // 1. 복제 시도
-            printDieMap();
             // 2. 몬스터 이동
             moveMonster();
-            printMonsterMoveMap();
+            //printMonsterMoveMap();
             // 3. 팩맨 이동
-            fMove();
+            PMove();
+            //printMonsterMoveMap();
             killMonster();
             // 4. 몬스터 시체 소멸
             dieUpdate();
             // 5. 몬스터 복제 완성
-            System.out.printf("ROUND : %d END MONSTER : %d\n", i ,MONSTER);
-            printMonster();
+            //printMonster();
         }
         System.out.println(MONSTER);
 
@@ -66,8 +66,7 @@ public class Main {
             int x = moveX[i];
             int y = moveY[i];
             // 몬스터가 살아 남았다면
-            if(!monsterInfVisit(x,y)){
-                System.out.printf("alive Monster x : %d, y : %d\n", x, y);
+            if(moveMap[x][y] > 0){
                 monsterX[MONSTER + cnt] = x;
                 monsterY[MONSTER + cnt] = y;
                 monsterDir[MONSTER + cnt] = moveDir[i];
@@ -78,7 +77,7 @@ public class Main {
     }
     static boolean monsterInfVisit(int x, int y){
         for(int i=0;i<3;++i){
-            if((fVisitX[i] == x) && (fVisitY[i] == y)) return true;
+            if((pVisitX[i] == x) && (pVisitY[i] == y)) return true;
         }
         return false;
     }
@@ -86,16 +85,16 @@ public class Main {
         return (x >=0) && (y>=0) && (x <4) && (y < 4);
     }
     static void moveMonster(){
-        boolean move = false;
         for(int i=0;i<MONSTER;++i){
             int x = monsterX[i];
             int y = monsterY[i];
+            boolean move = false;
             int dir = monsterDir[i];
             for(int j=0;j<8;++j){ // 8방향 중 한 곳으로 이동
                 int nDir = (j+dir)%8;
                 int nx = x + mdx[nDir];
                 int ny = y + mdy[nDir];
-                if(checkRange(nx, ny) && dieMap[nx][ny] == 0 && isNotSame(nx, ny, fx, fy)){
+                if(checkRange(nx, ny) && dieMap[nx][ny] == 0 && isNotSame(nx, ny, px, py)){
                     move = true; // 이동에 성공
                     moveX[i] = nx;
                     moveY[i] = ny;
@@ -112,52 +111,49 @@ public class Main {
             }
         }
     }
-    static void fMove(){
+    static void PMove(){
         int MAX_EAT_MONSTER = -1;
         for(int i=0;i<4;++i){
             for(int j=0;j<4;++j){
                 for(int k=0;k<4;++k){
                     // i: 첫번째 이동 방향, j: 두번째 이동방향, k: 세번째 이동방향
-                    int x1 = fx + fdx[i];
-                    int y1 = fy + fdy[i];
-                    int x2 = x1 + fdx[j];
-                    int y2 = y1 + fdy[j];
-                    int x3 = x2 + fdx[k];
-                    int y3 = y2 + fdy[k];
+                    int x1 = px + pdx[i];
+                    int y1 = py + pdy[i];
+                    int x2 = x1 + pdx[j];
+                    int y2 = y1 + pdy[j];
+                    int x3 = x2 + pdx[k];
+                    int y3 = y2 + pdy[k];
                     // 가장 몬스터를 많이 먹을 수 있는 경로 탐색 -> 같은 지점 두번 방문 X
                     if(checkRange(x1, y1) && checkRange(x2, y2) && checkRange(x3, y3)){
                         int cur = moveMap[x1][y1] + moveMap[x2][y2] + moveMap[x3][y3];
-                        if(!isNotSame(x1,y1,x2,y2)) cur -= moveMap[x1][y1];
                         if(!isNotSame(x1,y1,x3,y3)) cur -= moveMap[x1][y1];
-                        if(!isNotSame(x2,y2,x3,y3)) cur -= moveMap[x2][y2];
                         if(MAX_EAT_MONSTER < cur){
                             MAX_EAT_MONSTER = cur;
-                            fVisitX[0] = x1;
-                            fVisitX[1] = x2;
-                            fVisitX[2] = x3;
-                            fVisitY[0] = y1;
-                            fVisitY[1] = y2;
-                            fVisitY[2] = y3;
+                            pVisitX[0] = x1;
+                            pVisitX[1] = x2;
+                            pVisitX[2] = x3;
+                            pVisitY[0] = y1;
+                            pVisitY[1] = y2;
+                            pVisitY[2] = y3;
                             
                         }
                     }
                 }
             }
         }
+        //System.out.printf("(%d, %d) -> ", px, py);
         // 팩맨 정보 업데이트
-        fx = fVisitX[2];
-        fy = fVisitY[2];
-        // 현재 턴에 사라질 몬스터 수 검색
-        CUR_DIE_MONSTER = MAX_EAT_MONSTER;
+        px = pVisitX[2];
+        py = pVisitY[2];
         // 몬스터 시체 생성
-        //System.out.print("f root => ");
         for(int i=0;i<3;++i){
-            int x = fVisitX[i];
-            int y = fVisitY[i];
+            int x = pVisitX[i];
+            int y = pVisitY[i];
             if(moveMap[x][y] > 0) dieMap[x][y] = 3;
-            System.out.printf("(%d, %d) => ", x,y);
+            moveMap[x][y] = 0;
+            //System.out.printf("(%d, %d) -> ", x,y);
         }
-        System.out.println();
+        //System.out.println();
     }
     static void dieUpdate(){
         for(int i=0;i<4;++i){
@@ -176,8 +172,8 @@ public class Main {
         moveDir = new int[MAX_MONSTER_NUM];
         moveX = new int[MAX_MONSTER_NUM];
         moveY = new int[MAX_MONSTER_NUM];
-        fVisitX = new int[3];
-        fVisitY = new int[3];
+        pVisitX = new int[3];
+        pVisitY = new int[3];
     }
     static void printMonster(){
         System.out.println("MONSTER");
