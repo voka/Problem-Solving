@@ -1,8 +1,6 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.StringTokenizer;
 public class Main {
     static int n, ans = Integer.MIN_VALUE;
@@ -36,28 +34,24 @@ public class Main {
             for(int j=0;j<n;++j){
                 if(i == j) continue;
                 for(int k=0;k<n;++k){
-                    if(i == k || j == k) continue;
-                    for(int id=0;id<4;++id){
-                        for(int is=0;is<4;++is){
-                            for(int jd=0;jd<4;++jd){
-                                for(int js=0;js<4;++js){
-                                    for(int kd=0;kd<4;++kd){
-                                        for(int ks=0;ks<4;++ks){
+                    if(i == k || j == k) continue;//720
+                    for(int id=0;id<4;++id){//2880
+                        for(int is=0;is<4;++is){//11520
+                            for(int jd=0;jd<4;++jd){//46080
+                                for(int js=0;js<4;++js){//184320
+                                    for(int kd=0;kd<4;++kd){//737280
+                                        for(int ks=0;ks<4;++ks){//2949120
                                             map = new int[5][5];
                                             nameMap = new int[5][5];
-                                            sumArray(map, nameMap, i, id, is);
-                                            sumArray(map, nameMap, j, jd, js);
-                                            sumArray(map, nameMap, k, kd, ks);
-                                            int cur = getScore(map, nameMap);
-                                            // if(i==1 && id == 3 && is == 0 && j==2 && jd==0 && js==3 && k==0 && kd==3 && ks==2){
-                                            //     printMap(map);
-                                            //     printMap(nameMap);
-                                            //     System.out.printf("%d, %d, %d, %d, %d, %d, %d, %d, %d", i,id,is,j,jd,js,k,kd,ks);
-                                            //     System.out.printf(" %d\n", cur);
-                                            // }
+                                            sumArray(map, nameMap, i, id, is);//16
+                                            sumArray(map, nameMap, j, jd, js);//16
+                                            sumArray(map, nameMap, k, kd, ks);//16
+                                            int cur = getScore(map, nameMap);//25 
+                                            // 48 + 25 -> 73
                                             if(ans < cur){
                                                 ans = cur;
                                             }
+                                            // 215292330 -> 약 2.2초
                                         }
                                     }
                                 }
@@ -92,40 +86,9 @@ public class Main {
         for(int i=0;i<4;++i){
             for(int j=0;j<4;++j){
                 temp[j][3-i] = k[i][j];
-                /**
-                 * 0, 0 -> 0,3
-                 * 0, 1 -> 1,3
-                 * 0, 2 -> 2,3
-                 * 0, 4 -> 3,3
-                 * 
-                 * 1, 0 -> 0, 2
-                 */
             }
         }
         return temp;
-    }
-    static void printArr(int[] visit){
-        for(int i=0;i<n;++i){
-            System.out.printf("%d ",visit[i] );
-        }
-        System.out.println();
-    }
-    static void getMaxScore(int[][] scoreMap, int[][] colocMap, int[] visited, int cnt, int s){
-        if(cnt == 4){ // 3가지 재료를 모두 넣었다면 점수 계산 후 종료
-            ans = Math.max(ans,getScore(scoreMap, colocMap));
-            printArr(visited);
-            return;
-        }
-        for(int i=0;i<n;++i){
-            if(visited[i] != 0) continue;
-            // 재료를 넣기
-            visited[i] = cnt;
-            getMaxScore(scoreMap, colocMap, visited, cnt+1, s+1);
-            // 넘어가기
-            visited[i] = 0;
-            getMaxScore(scoreMap, colocMap, visited, cnt, s+1);            
-        }
-
     }
     static int getScore(int[][] curMap, int[][] nameMap){
         int R = 0, B = 0, G = 0, Y = 0;
