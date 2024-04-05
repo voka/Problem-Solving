@@ -53,13 +53,14 @@ public class Main {
             temp[i+1] = point[i];
         }
         point = temp;
-    }
-    static void move(){
         // 맨 마지막에 사람이 있다면 내리기
         int l = point[n-1];
         if(people[l]){
             people[l] = false;
         }
+    }
+    static void move(){
+        
         for(int i=n-2;i>=0;--i){
             int c = point[i];
             if(people[c]){
