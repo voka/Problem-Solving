@@ -5,22 +5,23 @@ public class Main {
     public static void main(String[] args) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         int n = Integer.parseInt(br.readLine());
-        int[] res = new int[n];
+        long[] res = new long[n];
         StringTokenizer st = new StringTokenizer(br.readLine());
         for(int i=0;i<n;++i){
-            res[i] = Integer.parseInt(st.nextToken());
+            res[i] = Long.parseLong(st.nextToken());
         }
         st = new StringTokenizer(br.readLine());
-        int nc = Integer.parseInt(st.nextToken());
-        int mc = Integer.parseInt(st.nextToken());
-        int ans = 0;
+        long nc = Long.parseLong(st.nextToken());
+        long mc = Long.parseLong(st.nextToken());
+        long ans = 0;
         for(int i=0;i<n;++i){
-            int target = res[i];
-            int check = nc;
+            long target = res[i];
+            long check = nc;
             ans+=1;
-            while(check < target){
-                check+=mc;
-                ans++;
+            if(check < target){
+                long rest = target - check;
+                double plus = Math.ceil((double)rest/mc);
+                ans+=plus;
             }
         }
         System.out.println(ans);
