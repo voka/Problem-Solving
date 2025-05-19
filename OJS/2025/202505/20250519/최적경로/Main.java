@@ -52,15 +52,16 @@ public class Main {
         }
     }
     static int tsp(int id, int visit){
-        if(visit == (1<<(N+1)) - 1){
-            return (w[id][N+1] != 0) ? w[id][N+1]:Integer.MAX_VALUE;
+        if(visit == (1<<(N+1)) - 1){ // 집에서 출발해서 N번째 까지 집을 모두 돌았다면
+            return w[id][N+1]; // 현재 방문한 곳 ~ 집 까지의 거리를 반환 (갈수 없는 곳이 있다면 제외)
         }
-        if(dp[id][visit] != -1) return dp[id][visit];
-        dp[id][visit] = Integer.MAX_VALUE;
-        for(int next = 0; next <= N; ++next){
-            if(!check(visit, next) && w[id][next] != 0){
-                int cost = tsp(next, add(visit, next)) + w[id][next];
-                if(cost < dp[id][visit]){
+        if(dp[id][visit] != -1) return dp[id][visit]; //이전에 구한 값이 있다면 그 값을 사용한다 -> (id 도시에 있으면서 visit 도시들을 방문한 경우의 최소 비용)
+        dp[id][visit] = Integer.MAX_VALUE; // 처음 구하는 곳이라면 최대값으로 초기화
+        for(int next = 0; next <= N; ++next){ // 회사 ~ 방문해야 하는 곳 (집은 마지막으로 방문해야 하므로 제외)
+            if(!check(visit, next)){ // 이미 방문한곳 제외, 갈수 없는 곳이 있다고 해도 제외해야함
+                int cost = tsp(next, add(visit, next)) + w[id][next];  // 
+                // 현재 도시에서 다음 도시로 가는 비용 + 다음 도시에서 최적으로 나머지 도시들을 돌고 집으로 돌아기는 비용
+                if(cost < dp[id][visit]){ // 위에서 구한 비용이 더 작다면 갱신
                     dp[id][visit] = cost;
                 }
             }
