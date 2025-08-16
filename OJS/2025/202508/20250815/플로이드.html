@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>플로이드–워셜 알고리즘 시각화</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; color: #333;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; color: white; margin-bottom: 40px; }
+    .header h1 { font-size: 3rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+    .header p { font-size: 1.2rem; opacity: 0.9; }
+
+    .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; }
+    .card {
+      background: white; border-radius: 15px; padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s ease;
+    }
+    .card:hover { transform: translateY(-5px); }
+    .card h2 { color: #667eea; margin-bottom: 20px; font-size: 1.8rem; }
+
+    .algorithm-steps { list-style: none; counter-reset: step-counter; }
+    .algorithm-steps li {
+      counter-increment: step-counter; margin-bottom: 15px; padding-left: 40px;
+      position: relative; line-height: 1.6;
+    }
+    .algorithm-steps li::before {
+      content: counter(step-counter); position: absolute; left: 0; top: 0;
+      background: #667eea; color: white; width: 25px; height: 25px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;
+    }
+
+    .visualization {
+      grid-column: 1 / -1; background: white; border-radius: 15px; padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .controls { text-align: center; margin: 20px 0 10px; }
+    .btn {
+      background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 25px;
+      font-size: 1rem; cursor: pointer; margin: 0 8px; transition: all 0.3s ease;
+    }
+    .btn:hover { background: #5a6fd8; transform: translateY(-2px); }
+    .btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+    .status {
+      display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin: 10px 0 10px;
+    }
+    .status .panel {
+      background: #f8f9ff; border: 1px solid #e5e7ff; border-radius: 12px; padding: 16px;
+    }
+    .status .panel h3 { margin-bottom: 10px; color: #5a6fd8; }
+
+    .formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .table-wrap { overflow-x: auto; }
+    table.matrix {
+      width: 100%; border-collapse: collapse; margin-top: 10px;
+    }
+    .matrix th, .matrix td {
+      border: 1px solid #ddd; padding: 10px; text-align: center; min-width: 60px;
+    }
+    .matrix th {
+      background: #667eea; color: white; position: sticky; top: 0; z-index: 1;
+    }
+    .infinity { color: #999; }
+
+    /* 하이라이트 */
+    td.active { background: #fff3cd; font-weight: bold; }
+    td.using  { background: #e7f1ff; }
+    td.kline  { background: #f0e9ff; }
+    td.updated { background: #c8e6c9; animation: pulse 0.5s ease; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 rgba(76,175,80,0.6); }
+      100% { box-shadow: 0 0 12px rgba(76,175,80,0.6) inset; }
+    }
+
+    /* 작은 그래프 (옵션): 현재 i-k, k-j 노드만 포커스용 */
+    .mini-graph {
+      position: relative; height: 300px; margin-top: 10px;
+      background: #fafafa; border: 1px dashed #e0e0e0; border-radius: 12px;
+    }
+    .node {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: #f0f0f0; border: 3px solid #ddd;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; position: absolute; user-select: none;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .node.focus { transform: scale(1.1); box-shadow: 0 6px 18px rgba(0,0,0,0.15); border-color:#667eea; }
+    svg { position:absolute; top:0; left:0; width:100%; height:100%; }
+    line.hint { stroke:#bbb; stroke-width:3; }
+    line.path { stroke:#ff9800; stroke-width:5; stroke-dasharray:6 6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>플로이드–워셜 알고리즘</h1>
+      <p>모든 정점쌍 최단거리(APS P)를 동적 계획법으로 구하는 과정을 단계별로 시각화합니다</p>
+    </div>
+
+    <div class="content-grid">
+      <div class="card">
+        <h2>🎯 알고리즘 개요</h2>
+        <p><b>플로이드–워셜</b>은 정점 수가 V일 때, 모든 쌍 (i, j)에 대해 최단거리를 구하는 알고리즘입니다.</p>
+        <br>
+        <ul style="margin-left: 20px;">
+          <li>입력 그래프에 <b>음수 가중치</b>는 허용되지만 <b>음수 사이클</b>은 허용되지 않음</li>
+          <li>시간 복잡도: <span class="mono">O(V³)</span>, 공간 복잡도: <span class="mono">O(V²)</span></li>
+          <li>점화식: <span class="formula">dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>📋 알고리즘 단계</h2>
+        <ol class="algorithm-steps">
+          <li>초기화: dist[i][i] = 0, 간선 (u, v, w)는 dist[u][v] = w (무방향이면 양쪽 설정)</li>
+          <li>중간 정점 k를 0..V-1로 증가시키며
+            <ul style="margin-left: 16px; margin-top:6px;">
+              <li>모든 (i, j)에 대해 <span class="formula">dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])</span> 적용</li>
+              <li>더 짧아지면 갱신</li>
+            </ul>
+          </li>
+          <li>k가 끝나면 모든 쌍 최단거리 완성</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="visualization">
+      <h2 style="text-align:center; color:#667eea; margin-bottom: 8px;">🔍 단계별 시각화</h2>
+
+      <div class="status">
+        <div class="panel">
+          <h3>현재 상태</h3>
+          <div id="stateText" class="mono">k = -, i = -, j = -</div>
+          <div id="formulaText" class="formula" style="margin-top:8px;">
+            dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
+          </div>
+        </div>
+        <div class="panel">
+          <h3>미니 그래프 (i–k–j)</h3>
+          <div class="mini-graph" id="miniGraph">
+            <svg id="miniSvg"></svg>
+            <div class="node" style="top: 30px; left: 40px;"  data-node="A">A</div>
+            <div class="node" style="top: 30px; right: 40px;" data-node="C">C</div>
+            <div class="node" style="bottom: 30px; left: 50%;" data-node="B" ></div>
+            <div class="node" style="bottom: 30px; left: 50%; transform: translateX(-50%);" data-node="B">B</div>
+            <!-- 실제 배치는 스크립트에서 다시 설정 -->
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="startBtn">알고리즘 시작</button>
+        <button class="btn" id="nextBtn" disabled>다음 단계</button>
+        <button class="btn" id="autoBtn" disabled>자동 재생</button>
+        <button class="btn" id="resetBtn">초기화</button>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2 style="color:#667eea; margin-bottom:12px;">거리 행렬</h2>
+        <div class="table-wrap">
+          <table class="matrix" id="matrixTable"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  /************** 데이터 (노드/그래프) **************/
+  const nodes = ['A','B','C','D','E']; // 인덱스 0..4
+  const N = nodes.length;
+
+  // 무방향 그래프
+  const edges = [
+    ['A','B',4], ['A','C',10], ['A','D',3],
+    ['B','C',2], ['B','E',1],
+    ['C','E',5],
+    ['D','E',2]
+  ];
+
+  // dist, next 포인터(경로복원용; 여기선 표시만)
+  let dist = Array.from({length:N}, _ => Array(N).fill(Infinity));
+  let nextHop = Array.from({length:N}, _ => Array(N).fill(null));
+
+  // 반복 변수
+  let k = 0, i = 0, j = 0;
+  let running = false;
+  let autoTimer = null;
+
+  // 최근 렌더 상태(리사이즈 대응용)
+  let lastRender = { i: null, k: null, j: null, hasIK: false, hasKJ: false };
+
+  // DOM 참조
+  const startBtn = document.getElementById('startBtn');
+  const nextBtn  = document.getElementById('nextBtn');
+  const autoBtn  = document.getElementById('autoBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const matrixTable = document.getElementById('matrixTable');
+  const stateText = document.getElementById('stateText');
+  const formulaText = document.getElementById('formulaText');
+
+  /************** 초기화 **************/
+  function initMatrices() {
+    for (let a=0; a<N; a++) {
+      for (let b=0; b<N; b++) {
+        dist[a][b] = (a===b) ? 0 : Infinity;
+        nextHop[a][b] = (a===b) ? nodes[b] : null;
+      }
+    }
+    // 무방향 간선 반영
+    edges.forEach(([uName,vName,w]) => {
+      const u = nodes.indexOf(uName), v = nodes.indexOf(vName);
+      dist[u][v] = Math.min(dist[u][v], w);
+      dist[v][u] = Math.min(dist[v][u], w);
+      nextHop[u][v] = vName;
+      nextHop[v][u] = uName;
+    });
+  }
+
+  function buildMatrixTable() {
+    let html = '<thead><tr><th class="mono">i\\j</th>';
+    for (let col=0; col<N; col++) html += `<th>${nodes[col]}</th>`;
+    html += '</tr></thead><tbody>';
+
+    for (let r=0; r<N; r++) {
+      html += `<tr><th>${nodes[r]}</th>`;
+      for (let c=0; c<N; c++) {
+        const id = `cell-${r}-${c}`;
+        const val = dist[r][c];
+        html += `<td id="${id}">${formatVal(val)}</td>`;
+      }
+      html += '</tr>';
+    }
+    html += '</tbody>';
+    matrixTable.innerHTML = html;
+  }
+
+  function formatVal(x) {
+    return (x === Infinity) ? '<span class="infinity">∞</span>' : x;
+  }
+
+  function clearCellClasses() {
+    matrixTable.querySelectorAll('td').forEach(td=>{
+      td.classList.remove('active','using','kline','updated');
+    });
+  }
+
+  function highlightStep(iIdx, kIdx, jIdx, didUpdate = false) {
+  clearCellClasses();
+
+  // k의 행/열 소프트 강조
+  for (let c = 0; c < N; c++) document.getElementById(`cell-${kIdx}-${c}`).classList.add('kline');
+  for (let r = 0; r < N; r++) document.getElementById(`cell-${r}-${kIdx}`).classList.add('kline');
+
+  // 사용되는 항: (i,k), (k,j)
+  document.getElementById(`cell-${iIdx}-${kIdx}`).classList.add('using');
+  document.getElementById(`cell-${kIdx}-${jIdx}`).classList.add('using');
+
+  // 대상 셀: (i,j)
+  const tgt = document.getElementById(`cell-${iIdx}-${jIdx}`);
+  tgt.classList.add('active');
+  if (didUpdate) tgt.classList.add('updated');
+
+  // 상태 텍스트
+  const iN = nodes[iIdx], jN = nodes[jIdx], kN = nodes[kIdx];
+  stateText.textContent = `k = ${kN}, i = ${iN}, j = ${jN}`;
+
+  // 값 준비
+  const dijVal = dist[iIdx][jIdx];
+  const dikVal = dist[iIdx][kIdx];
+  const dkjVal = dist[kIdx][jIdx];
+  const dij = displayVal(dijVal);
+  const dik = displayVal(dikVal);
+  const dkj = displayVal(dkjVal);
+  const sum = (dikVal === Infinity || dkjVal === Infinity) ? '∞' : (dikVal + dkjVal);
+  const best = (typeof sum === 'number') ? Math.min(dijVal, sum) : (dijVal === Infinity ? '∞' : dijVal);
+
+  // 수식(기호형 + 숫자형 + 결과)
+  const leftSym = `dist[${iN}][${jN}]`;
+  const rightSym = `min( ${leftSym}, dist[${iN}][${kN}] + dist[${kN}][${jN}] )`;
+  const rightNum = `min( ${dij}, ${dik} + ${dkj} )`;
+  const bestStr = (best === Infinity) ? '∞' : String(best);
+
+  formulaText.innerHTML = `
+    ${leftSym} = ${rightSym}<br/>
+    = ${rightNum}<br/>
+    = <b>${bestStr}</b>
+  `;
+
+  // 전체 그래프(5노드) 포커스/경로 표시
+  renderFullGraph(iIdx, kIdx, jIdx, (dikVal !== Infinity), (dkjVal !== Infinity));
+}
+  function minDisplay(a, b) {
+    if (a === '∞' && b === '∞') return '∞';
+    if (a === '∞') return b;
+    if (b === '∞') return a;
+    return Math.min(Number(a), Number(b));
+  }
+
+  function displayVal(v) { return (v===Infinity) ? '∞' : String(v); }
+
+  /************** 한 스텝 진행 (i,j 한 칸) **************/
+  function step() {
+    if (!running) return;
+
+    const iIdx = i, jIdx = j, kIdx = k;
+    const alt = (dist[iIdx][kIdx] === Infinity || dist[kIdx][jIdx] === Infinity)
+      ? Infinity
+      : dist[iIdx][kIdx] + dist[kIdx][jIdx];
+
+    let updated = false;
+    if (alt < dist[iIdx][jIdx]) {
+      dist[iIdx][jIdx] = alt;
+      nextHop[iIdx][jIdx] = nextHop[iIdx][kIdx];
+      const cell = document.getElementById(`cell-${iIdx}-${jIdx}`);
+      if (cell) cell.innerHTML = formatVal(alt);
+      updated = true;
+    }
+
+    highlightStep(iIdx, kIdx, jIdx, updated);
+
+    // 인덱스 진행: j -> i -> k
+    j++;
+    if (j >= N) { j = 0; i++; }
+    if (i >= N) { i = 0; k++; }
+
+    // 종료 조건
+    if (k >= N) {
+      running = false;
+      nextBtn.disabled = true;
+      autoBtn.textContent = '자동 재생';
+      autoBtn.disabled = true;
+      startBtn.disabled = false;
+      clearInterval(autoTimer);
+    }
+  }
+
+  /************** 컨트롤 **************/
+  function start() {
+    reset(false);
+    running = true;
+    startBtn.disabled = true;
+    nextBtn.disabled = false;
+    autoBtn.disabled = false;
+    // 첫 셀 하이라이트만 보여주기
+    highlightStep(0,0,0,false);
+  }
+
+  function toggleAuto() {
+    if (!running) return;
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+      autoBtn.textContent = '자동 재생';
+    } else {
+      autoBtn.textContent = '일시정지';
+      autoTimer = setInterval(()=>{
+        step();
+        if (!running) { clearInterval(autoTimer); autoTimer=null; }
+      }, 600);
+    }
+  }
+
+  function reset(enableButtons = true) {
+    // 상태 리셋
+    k = 0; i = 0; j = 0;
+    running = false;
+    clearInterval(autoTimer); autoTimer = null;
+
+    // 행렬 리셋
+    initMatrices();
+    buildMatrixTable();
+    clearCellClasses();
+
+    // 텍스트 리셋
+    stateText.textContent = 'k = -, i = -, j = -';
+    formulaText.innerHTML = 'dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])';
+
+    // 전체 그래프 리셋
+    renderFullGraph(null,null,null,false,false);
+
+    if (enableButtons) {
+      startBtn.disabled = false;
+      nextBtn.disabled  = true;
+      autoBtn.disabled  = true;
+      autoBtn.textContent = '자동 재생';
+    }
+  }
+
+  /************** 전체 그래프(5노드) 시각화 **************/
+  const NODE_SIZE = 48; // CSS와 일치
+  function setupFullGraph() {
+    const miniGraph = document.getElementById('miniGraph');
+    miniGraph.innerHTML = `<svg id="miniSvg"></svg>`;
+    // 5개 노드 생성
+    nodes.forEach(name => {
+      const d = document.createElement('div');
+      d.className = 'node';
+      d.dataset.node = name;
+      d.textContent = name;
+      miniGraph.appendChild(d);
+    });
+  }
+
+  // 전체 그래프(5노드) 시각화 — 가중치 라벨 추가 버전
+function renderFullGraph(iIdx, kIdx, jIdx, hasIK, hasKJ) {
+  const ctn = document.getElementById('miniGraph');
+  if (!ctn) return;
+
+  // 처음에만 구성
+  if (!ctn.querySelector('#miniSvg') || ctn.querySelectorAll('.node').length !== N) {
+    setupFullGraph();
+  }
+
+  const svg = ctn.querySelector('#miniSvg');
+
+  // 원형 배치 좌표 계산
+  const w = ctn.clientWidth, h = ctn.clientHeight;
+  const cx = w/2, cy = h/2;
+  const R = Math.min(w, h) * 0.38;
+
+  const pos = {}; // name -> {x,y}
+  nodes.forEach((name, idx) => {
+    const ang = -Math.PI/2 + 2*Math.PI*idx/N;
+    pos[name] = { x: cx + R*Math.cos(ang), y: cy + R*Math.sin(ang) };
+  });
+
+  // 노드 배치 + 기본 스타일 초기화
+  nodes.forEach(name => {
+    const el = ctn.querySelector(`.node[data-node="${name}"]`);
+    if (!el) return;
+    el.style.left = (pos[name].x - NODE_SIZE/2) + 'px';
+    el.style.top  = (pos[name].y - NODE_SIZE/2) + 'px';
+    el.classList.remove('focus');
+    el.style.borderColor = '#ddd';
+    el.style.boxShadow = 'none';
+  });
+
+  // SVG 레이어 구성: 기본 간선, 강조 간선, 라벨 순서로 그려 가독성 유지
+  let baseLines = '';
+  let highlightLines = '';
+  let labels = '';
+
+  // 기본 간선 + 라벨
+  edges.forEach(([u, v, wgt]) => {
+    const p1 = pos[u], p2 = pos[v];
+    baseLines += `<line class="hint" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" />`;
+
+    // 라벨 위치: 중점에서 법선 방향으로 살짝(14px) 밀기
+    const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy) || 1;
+    let nx = -dy / len, ny = dx / len; // 법선
+
+    // 라벨이 그래프 바깥쪽으로 가도록 법선 방향 선택
+    const vx = mx - cx, vy = my - cy;
+    if (nx*vx + ny*vy < 0) { nx = -nx; ny = -ny; }
+
+    const offset = 14;
+    const lx = mx + nx * offset;
+    const ly = my + ny * offset;
+
+    // 텍스트 테두리(stroke)로 가독성 확보 (배경 박스 없이)
+    labels += `
+      <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}"
+            font-size="12" text-anchor="middle" dominant-baseline="middle"
+            fill="#111" stroke="#fff" stroke-width="3" paint-order="stroke"
+            style="pointer-events:none;">
+        ${wgt}
+      </text>`;
+  });
+
+  // i, k, j 포커스 & 개념 경로(점선 주황)
+  if (iIdx !== null && kIdx !== null && jIdx !== null) {
+    const iN = nodes[iIdx], kN = nodes[kIdx], jN = nodes[jIdx];
+
+    // 포커스 효과
+    [iN,kN,jN].forEach(name => {
+      const el = ctn.querySelector(`.node[data-node="${name}"]`);
+      if (el) { el.classList.add('focus'); el.style.boxShadow = '0 6px 18px rgba(0,0,0,0.15)'; }
+    });
+    // 역할별 테두리 색
+    const iEl = ctn.querySelector(`.node[data-node="${iN}"]`);
+    const kEl = ctn.querySelector(`.node[data-node="${kN}"]`);
+    const jEl = ctn.querySelector(`.node[data-node="${jN}"]`);
+    if (iEl) iEl.style.borderColor = '#ff9800';
+    if (kEl) kEl.style.borderColor = '#667eea';
+    if (jEl) jEl.style.borderColor = '#ff9800';
+
+    if (hasIK) {
+      highlightLines += `<line class="path" x1="${pos[iN].x}" y1="${pos[iN].y}" x2="${pos[kN].x}" y2="${pos[kN].y}" />`;
+    }
+    if (hasKJ) {
+      highlightLines += `<line class="path" x1="${pos[kN].x}" y1="${pos[kN].y}" x2="${pos[jN].x}" y2="${pos[jN].y}" />`;
+    }
+  }
+
+  // 그리기: 기본선 → 강조선 → 라벨(맨 위)
+  svg.innerHTML = baseLines + highlightLines + labels;
+
+  // 마지막 렌더 상태 저장(리사이즈 대응)
+  lastRender = { i: iIdx, k: kIdx, j: jIdx, hasIK, hasKJ };
+}
+
+  // 리사이즈 시 재렌더
+  window.addEventListener('resize', () => {
+    renderFullGraph(lastRender.i, lastRender.k, lastRender.j, lastRender.hasIK, lastRender.hasKJ);
+  });
+
+  /************** 이벤트 **************/
+  startBtn.addEventListener('click', start);
+  nextBtn.addEventListener('click', step);
+  autoBtn.addEventListener('click', toggleAuto);
+  resetBtn.addEventListener('click', ()=>reset(true));
+
+  // 처음 렌더
+  initMatrices();
+  buildMatrixTable();
+  renderFullGraph(null,null,null,false,false);
+</script>
+
+</body>
+</html>

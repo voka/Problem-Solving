@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>유니온-파인드 (Disjoint Set Union) – Size Only</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    min-height:100vh;color:#333
+  }
+  .container{max-width:1200px;margin:0 auto;padding:20px}
+  .header{text-align:center;color:#fff;margin-bottom:24px}
+  .header h1{font-size:2.2rem;text-shadow:2px 2px 4px rgba(0,0,0,.25);margin-bottom:6px}
+
+  .card{
+    background:#fff;border-radius:15px;padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.18)
+  }
+  .card h2{color:#667eea;margin-bottom:10px}
+
+  .visual{margin-top:14px}
+  .topgrid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+  @media (max-width:980px){.topgrid{grid-template-columns:1fr}}
+
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+  .btn{
+    background:#667eea;color:#fff;border:none;padding:10px 16px;border-radius:22px;
+    cursor:pointer;transition:.2s
+  }
+  .btn:hover{background:#5a6fd8;transform:translateY(-1px)}
+  .btn:disabled{background:#ccc;cursor:not-allowed;transform:none}
+  .sep{flex:1}
+
+  .toggle{display:flex;gap:14px;align-items:center}
+  .toggle label{display:flex;gap:6px;align-items:center;font-size:.95rem}
+
+  .status{font-family:ui-monospace,Menlo,Consolas,monospace;margin:6px 0 0}
+
+  .stage{position:relative;height:440px;background:#fafafa;border:1px solid #eee;border-radius:12px;overflow:hidden}
+  .stage svg{position:absolute;inset:0;width:100%;height:100%}
+  .node{
+    width:48px;height:48px;border-radius:50%;background:#f0f0f0;border:3px solid #ddd;
+    position:absolute;display:flex;align-items:center;justify-content:center;font-weight:700;user-select:none;
+    transition:transform .15s, box-shadow .15s, border-color .15s, background .15s
+  }
+  .node.root{border-color:#4caf50;box-shadow:0 6px 16px rgba(76,175,80,.25)}
+  .node.selected{background:#fff8e1;border-color:#ffb300}
+  .node.focus{transform:scale(1.06);box-shadow:0 6px 16px rgba(0,0,0,.12)}
+
+  .parent-edge{stroke:#666;stroke-width:3;marker-end:url(#arrow)}
+  .trace{stroke:#ff9800;stroke-width:5;stroke-dasharray:6 6}
+  .hint{stroke:#e6e6e6;stroke-width:2}
+
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.92rem;margin-top:8px}
+  .legend span{display:inline-flex;gap:6px;align-items:center}
+  .legend i{display:inline-block;width:28px;height:6px;border-radius:3px}
+  .lg-parent i{background:#666}
+  .lg-trace i{background:#ff9800}
+  .lg-sel i{background:#ffb300}
+
+  table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid #e5e5e5;padding:8px;text-align:center}
+  th{background:#667eea;color:#fff}
+  .pill{display:inline-block;border:1px solid #ddd;border-radius:14px;padding:3px 10px;background:#f8f8ff;margin:2px 4px}
+  .log{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92rem;max-height:160px;overflow:auto}
+  .log div{padding:4px 0;border-bottom:1px dashed #eee}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>유니온-파인드 (Disjoint Set Union)</h1>
+    <p>Size 기준 합치기만 사용합니다. (동률이면 <b>인덱스가 작은</b> 루트가 부모)</p>
+  </div>
+
+  <div class="card visual">
+    <div class="controls">
+      <button class="btn" id="makeBtn">makeSet</button>
+      <button class="btn" id="findBtn" disabled>Find(선택 1개)</button>
+      <button class="btn" id="unionBtn" disabled>Union(선택 2개)</button>
+      <button class="btn" id="randBtn">랜덤 Union</button>
+      <div class="sep"></div>
+      <div class="toggle">
+        <label><input type="checkbox" id="pcToggle" checked/> 경로 압축</label>
+      </div>
+    </div>
+    <div id="status" class="status">대기 중… 노드를 클릭해 선택하세요.</div>
+
+    <div class="topgrid" style="margin-top:12px">
+      <div class="card">
+        <div class="stage" id="stage">
+          <svg id="svgLayer">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5"
+                      markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#666"></path>
+              </marker>
+            </defs>
+            <g id="hintLayer"></g>
+            <g id="parentLayer"></g>
+            <g id="traceLayer"></g>
+          </svg>
+          <!-- 노드 DIV는 JS에서 생성 -->
+        </div>
+        <div class="legend">
+          <span class="lg-parent"><i></i> 부모 포인터</span>
+          <span class="lg-trace"><i></i> find 경로</span>
+          <span class="lg-sel"><i></i> 선택된 노드</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>배열 상태</h2>
+        <div style="overflow:auto; max-height:300px">
+          <table id="arrTable"></table>
+        </div>
+        <div style="margin-top:8px"><b>컴포넌트:</b> <span id="components"></span></div>
+        <h2 style="margin-top:14px">로그</h2>
+        <div class="log" id="logBox"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 기본 데이터: A~E 5개 ===== */
+const nodes = ['A','B','C','D','E'];
+const N = nodes.length;
+const nameToIdx = Object.fromEntries(nodes.map((n,i)=>[n,i]));
+
+/* ===== DSU 내부 상태 (size만 사용) ===== */
+let parent = new Array(N);
+let sizeArr = new Array(N).fill(1);
+let pcOn = true;
+
+/* ===== DOM ===== */
+const stage = document.getElementById('stage');
+const svg   = document.getElementById('svgLayer');
+const hintLayer   = document.getElementById('hintLayer');
+const parentLayer = document.getElementById('parentLayer');
+const traceLayer  = document.getElementById('traceLayer');
+
+const statusEl = document.getElementById('status');
+const makeBtn  = document.getElementById('makeBtn');
+const findBtn  = document.getElementById('findBtn');
+const unionBtn = document.getElementById('unionBtn');
+const randBtn  = document.getElementById('randBtn');
+const pcToggle = document.getElementById('pcToggle');
+
+const arrTable = document.getElementById('arrTable');
+const componentsEl = document.getElementById('components');
+const logBox = document.getElementById('logBox');
+
+/* ===== 배치 ===== */
+const NODE_SIZE = 48;
+let pos = {};
+function layoutPositions(){
+  const w = stage.clientWidth, h = stage.clientHeight;
+  const cx = w/2, cy = h/2, R = Math.min(w,h)*0.35;
+  nodes.forEach((name,idx)=>{
+    const ang = -Math.PI/2 + 2*Math.PI*idx/N;
+    pos[name] = { x: cx + R*Math.cos(ang), y: cy + R*Math.sin(ang) };
+  });
+}
+function ensureNodes(){
+  nodes.forEach(n=>{
+    let el = stage.querySelector(`.node[data-node="${n}"]`);
+    if(!el){
+      el = document.createElement('div');
+      el.className='node';
+      el.dataset.node = n;
+      el.textContent  = n;
+      el.addEventListener('click', ()=>toggleSelect(n));
+      stage.appendChild(el);
+    }
+    el.style.left = (pos[n].x - NODE_SIZE/2) + 'px';
+    el.style.top  = (pos[n].y - NODE_SIZE/2) + 'px';
+  });
+
+  // 힌트(얇은 전체 연결선)
+  let h='';
+  for(let i=0;i<N;i++){
+    for(let j=i+1;j<N;j++){
+      const p1 = pos[nodes[i]], p2 = pos[nodes[j]];
+      h += `<line class="hint" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"></line>`;
+    }
+  }
+  hintLayer.innerHTML = h;
+}
+
+/* ===== 선택/상호작용 ===== */
+let selected = new Set(); // node names
+function toggleSelect(name){
+  const el = stage.querySelector(`.node[data-node="${name}"]`);
+  if(selected.has(name)){
+    selected.delete(name);
+    el.classList.remove('selected');
+  }else{
+    if(selected.size>=2){
+      const first = selected.values().next().value;
+      selected.delete(first);
+      stage.querySelector(`.node[data-node="${first}"]`)?.classList.remove('selected');
+    }
+    selected.add(name);
+    el.classList.add('selected');
+  }
+  syncButtons();
+  statusEl.textContent = selected.size===1
+    ? `선택: ${[...selected][0]} — Find 가능`
+    : selected.size===2
+      ? `선택: ${[...selected].join(', ')} — Union 가능`
+      : '노드를 클릭해 선택하세요.';
+}
+function clearSelect(){ 
+  selected.forEach(n => stage.querySelector(`.node[data-node="${n}"]`)?.classList.remove('selected'));
+  selected.clear(); syncButtons();
+}
+function syncButtons(){
+  findBtn.disabled  = !(selected.size===1);
+  unionBtn.disabled = !(selected.size===2);
+}
+
+/* ===== DSU 연산 (size only, tie-break: 작은 idx 부모) ===== */
+function makeSet(){
+  for(let i=0;i<N;i++){ parent[i]=i; sizeArr[i]=1; }
+  drawParents();
+  updateTables();
+  log('makeSet: 각 원소가 자기 자신을 루트로 초기화');
+}
+function findWithPath(x){
+  const path=[x];
+  while(parent[path[path.length-1]]!==path[path.length-1]){
+    path.push(parent[path[path.length-1]]);
+  }
+  const root = path[path.length-1];
+  if(pcOn){
+    for(const v of path){ parent[v]=root; }
+  }
+  return {root, path};
+}
+function union(a,b){
+  let ra = findWithPath(a).root;
+  let rb = findWithPath(b).root;
+  if(ra===rb) return false;
+
+  // 승자(부모) 결정: size 큰 쪽, 같으면 idx 작은 쪽
+  // 최종적으로 ra가 부모가 되도록 정렬
+  if (sizeArr[ra] < sizeArr[rb]) {
+    [ra, rb] = [rb, ra];
+  } else if (sizeArr[ra] === sizeArr[rb] && rb < ra) {
+    [ra, rb] = [rb, ra];
+  }
+
+  parent[rb] = ra;
+  sizeArr[ra] += sizeArr[rb];
+  return true;
+}
+
+/* ===== 렌더링 ===== */
+function drawParents(tracePaths=[]){
+  let phtml='', thtml='';
+  for(let i=0;i<N;i++){
+    const u = nodes[i];
+    const pu = parent[i];
+    const v = nodes[pu];
+    const p1 = pos[u], p2 = pos[v];
+    if(i!==pu){
+      phtml += `<line class="parent-edge" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"></line>`;
+    }
+  }
+  tracePaths.forEach(path=>{
+    for(let t=0;t+1<path.length;t++){
+      const u = nodes[path[t]], v = nodes[path[t+1]];
+      const p1 = pos[u], p2 = pos[v];
+      thtml += `<line class="trace" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"></line>`;
+    }
+  });
+
+  parentLayer.innerHTML = phtml;
+  traceLayer.innerHTML  = thtml;
+
+  nodes.forEach((n,idx)=>{
+    const el=stage.querySelector(`.node[data-node="${n}"]`);
+    el.classList.toggle('root', parent[idx]===idx);
+    el.classList.remove('focus');
+  });
+  selected.forEach(n => stage.querySelector(`.node[data-node="${n}"]`)?.classList.add('selected'));
+}
+function updateTables(){
+  // 배열 테이블 (parent/size만)
+  let h='<thead><tr><th>idx</th>';
+  for(let i=0;i<N;i++) h+=`<th>${i}<br>${nodes[i]}</th>`;
+  h+='</tr></thead><tbody>';
+  h+='<tr><th>parent</th>';
+  for(let i=0;i<N;i++) h+=`<td>${parent[i]}</td>`;
+  h+='</tr><tr><th>size</th>';
+  for(let i=0;i<N;i++) h+=`<td>${sizeArr[i]}</td>`;
+  h+='</tr></tbody>';
+  arrTable.innerHTML=h;
+
+  // 컴포넌트 표시
+  const mp = new Map();
+  for(let i=0;i<N;i++){
+    let r=i; while(parent[r]!==r) r=parent[r];
+    if(!mp.has(r)) mp.set(r,[]);
+    mp.get(r).push(nodes[i]);
+  }
+  componentsEl.innerHTML = [...mp.values()]
+    .map(arr=>`<span class="pill">{ ${arr.join(', ')} }</span>`).join('');
+}
+function log(msg){
+  const line = document.createElement('div');
+  line.textContent = msg;
+  logBox.prepend(line);
+}
+
+/* ===== 액션 핸들러 ===== */
+function doFind(){
+  if(selected.size!==1) return;
+  const name = [...selected][0];
+  const x = nameToIdx[name];
+  const res = findWithPath(x);
+  drawParents([res.path]);
+  updateTables();
+  statusEl.textContent = `find(${name}) → root: ${nodes[res.root]} ${pcOn?'(경로 압축 적용)':''}`;
+  log(`find(${name}) => ${nodes[res.root]} ${pcOn?'[path compressed]':''}`);
+}
+function doUnion(){
+  if(selected.size!==2) return;
+  const [aName, bName] = [...selected];
+  const a = nameToIdx[aName], b = nameToIdx[bName];
+
+  // 시각화용 경로 표시
+  const fa = findWithPath(a), fb = findWithPath(b);
+  drawParents([fa.path, fb.path]);
+  updateTables();
+
+  if(fa.root===fb.root){
+    statusEl.textContent = `union(${aName}, ${bName}) — 같은 집합이라 변경 없음`;
+    log(`union(${aName}, ${bName}) => same set (no-op)`);
+    return;
+  }
+  const ok = union(fa.root, fb.root);
+  drawParents();
+  updateTables();
+
+  // 부모가 된 루트 표시(누가 승자였는지)
+  let winner = findWithPath(a).root;
+  let loser  = findWithPath(b).root;
+  if (parent[winner] === loser) [winner, loser] = [loser, winner];
+
+  const tieText = '(size 기준, 동률 시 idx 작은 쪽 부모)';
+  statusEl.textContent = `union(${aName}, ${bName}) 완료 ${tieText}`;
+  log(`union(${aName}, ${bName}) ${tieText} → parent(${nodes[loser]}) = ${nodes[winner]}`);
+  clearSelect();
+}
+function doRandomUnion(){
+  const i = Math.floor(Math.random()*N);
+  let j = Math.floor(Math.random()*N);
+  while(j===i) j = Math.floor(Math.random()*N);
+  const aName = nodes[i], bName = nodes[j];
+  clearSelect();
+  toggleSelect(aName); toggleSelect(bName);
+  doUnion();
+}
+
+/* ===== 이벤트 바인딩 ===== */
+makeBtn.addEventListener('click', ()=>{ makeSet(); statusEl.textContent='makeSet 완료. 노드를 선택해 find/union을 실행하세요.'; });
+findBtn.addEventListener('click', doFind);
+unionBtn.addEventListener('click', doUnion);
+randBtn.addEventListener('click', doRandomUnion);
+pcToggle.addEventListener('change', ()=>{ pcOn = pcToggle.checked; statusEl.textContent = `경로 압축: ${pcOn?'ON':'OFF'}`; });
+
+window.addEventListener('resize', ()=>{ layoutPositions(); ensureNodes(); drawParents(); });
+
+/* ===== 초기 렌더 ===== */
+layoutPositions();
+ensureNodes();
+makeSet();
+statusEl.textContent='대기 중… 노드를 클릭해 선택하세요.';
+</script>
+</body>
+</html>

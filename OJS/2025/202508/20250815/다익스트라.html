@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>다익스트라 알고리즘 시각화</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; color: #333;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; color: white; margin-bottom: 40px; }
+    .header h1 { font-size: 3rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+    .header p { font-size: 1.2rem; opacity: 0.9; }
+    .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; }
+    .card {
+      background: white; border-radius: 15px; padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s ease;
+    }
+    .card:hover { transform: translateY(-5px); }
+    .card h2 { color: #667eea; margin-bottom: 20px; font-size: 1.8rem; }
+    .algorithm-steps { list-style: none; counter-reset: step-counter; }
+    .algorithm-steps li {
+      counter-increment: step-counter; margin-bottom: 15px; padding-left: 40px;
+      position: relative; line-height: 1.6;
+    }
+    .algorithm-steps li::before {
+      content: counter(step-counter); position: absolute; left: 0; top: 0;
+      background: #667eea; color: white; width: 25px; height: 25px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;
+    }
+    .visualization {
+      grid-column: 1 / -1; background: white; border-radius: 15px; padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .graph-container {
+      display: flex; justify-content: center; align-items: center; min-height: 600px;
+      position: relative; margin: 20px 0;
+    }
+    .node {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: #f0f0f0; border: 3px solid #ddd;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 1.2rem; position: absolute; cursor: pointer;
+      transition: all 0.3s ease; z-index: 10;
+    }
+    .node.start { background: #4CAF50; color: white; border-color: #45a049; }
+    .node.visited { background: #2196F3; color: white; border-color: #1976D2; }
+    .node.current { background: #FF9800; color: white; border-color: #F57C00; transform: scale(1.1); }
+
+    /* SVG line 상태 시각화 */
+    line.queued   { stroke: #FFB74D; stroke-dasharray: 6 6; }
+    line.selected { stroke: #FF9800; stroke-width: 5; }
+
+    .edge-weight {
+      position: absolute; background: white; border: 2px solid #ddd; border-radius: 15px;
+      padding: 5px 10px; font-weight: bold; font-size: 0.9rem; z-index: 5; min-width: 30px; text-align: center;
+      left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: none;
+    }
+    .controls { text-align: center; margin-top: 30px; }
+    .btn {
+      background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 25px;
+      font-size: 1rem; cursor: pointer; margin: 0 10px; transition: all 0.3s ease;
+    }
+    .btn:hover { background: #5a6fd8; transform: translateY(-2px); }
+    .btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+    .distance-table { margin-top: 20px; width: 100%; border-collapse: collapse; }
+    .distance-table th, .distance-table td { padding: 10px; text-align: center; border: 1px solid #ddd; }
+    .distance-table th { background: #667eea; color: white; }
+    .distance-table .infinity { color: #999; }
+    .distance-table .current-distance { background: #fff3cd; font-weight: bold; }
+    @media (max-width: 768px) {
+      .content-grid { grid-template-columns: 1fr; }
+      .header h1 { font-size: 2rem; }
+      .node { width: 50px; height: 50px; font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>다익스트라 알고리즘</h1>
+    <p>최단 경로를 찾는 그래프 알고리즘을 시각적으로 학습해보세요</p>
+  </div>
+
+  <div class="content-grid">
+    <div class="card">
+      <h2>🎯 알고리즘 개요</h2>
+      <p><strong>다익스트라 알고리즘</strong>은 그래프에서 한 정점에서 다른 모든 정점까지의 최단 거리를 구하는 알고리즘입니다.</p>
+      <br>
+      <p><strong>특징:</strong></p>
+      <ul style="margin-left: 20px; margin-top: 10px;">
+        <li>음수 가중치가 없는 그래프에서 사용</li>
+        <li>시간 복잡도: O((V+E)logV)</li>
+        <li>그리디 알고리즘의 대표적인 예</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>📋 알고리즘 단계</h2>
+      <ol class="algorithm-steps">
+        <li>시작 정점의 거리를 0으로, 나머지는 무한대로 설정</li>
+        <li>방문하지 않은 정점 중 거리가 가장 짧은 정점 선택</li>
+        <li>선택된 정점의 인접 정점들의 거리 업데이트</li>
+        <li>선택된 정점을 방문 완료로 표시</li>
+        <li>모든 정점을 방문할 때까지 2-4단계 반복</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="visualization">
+    <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">🔍 알고리즘 시각화</h2>
+
+    <div class="graph-container" id="graphContainer">
+      <!-- 간선: 좌표는 JS에서 자동 설정 -->
+      <svg id="graphSvg" width="100%" height="100%" style="position:absolute; top:0; left:0; z-index:1;">
+        <line data-edge="A-B" stroke="#ddd" stroke-width="3"/>
+        <line data-edge="A-C" stroke="#ddd" stroke-width="3"/>
+        <line data-edge="A-D" stroke="#ddd" stroke-width="3"/>
+        <line data-edge="B-C" stroke="#ddd" stroke-width="3"/>
+        <line data-edge="B-E" stroke="#ddd" stroke-width="3"/>
+        <line data-edge="C-E" stroke="#ddd" stroke-width="3"/>
+        <line data-edge="D-E" stroke="#ddd" stroke-width="3"/>
+      </svg>
+
+      <!-- 노드들 (absolute 배치) -->
+      <div class="node start" style="top: 70px; left: 370px;" data-node="A">A</div>
+      <div class="node" style="top: 170px; left: 520px;" data-node="B">B</div>
+      <div class="node" style="top: 70px; left: 670px;" data-node="C">C</div>
+      <div class="node" style="top: 370px; left: 370px;" data-node="D">D</div>
+      <div class="node" style="top: 300px; left: 600px;" data-node="E">E</div>
+
+      <!-- 가중치 (자동 배치용 data-weight 부여) -->
+      <div class="edge-weight" data-weight="A-B">4</div>
+      <div class="edge-weight" data-weight="A-C">10</div>
+      <div class="edge-weight" data-weight="A-D">3</div>
+      <div class="edge-weight" data-weight="B-C">2</div>
+      <div class="edge-weight" data-weight="B-E">1</div>
+      <div class="edge-weight" data-weight="C-E">5</div>
+      <div class="edge-weight" data-weight="D-E">2</div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="startAlgorithm()">알고리즘 시작</button>
+      <button class="btn" onclick="nextStep()" id="nextBtn" disabled>다음 단계</button>
+      <button class="btn" onclick="resetGraph()">초기화</button>
+    </div>
+
+    <!-- PQ 패널 -->
+    <div class="card" style="margin-top:20px;">
+      <h2 style="color:#667eea; margin-bottom:12px;">🧺 Priority Queue</h2>
+      <div id="pqList" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+    </div>
+
+    <table class="distance-table" id="distanceTable" style="margin-top:20px;">
+      <thead>
+        <tr>
+          <th>정점</th>
+          <th>A</th>
+          <th>B</th>
+          <th>C</th>
+          <th>D</th>
+          <th>E</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>거리</strong></td>
+          <td id="dist-A">0</td>
+          <td id="dist-B" class="infinity">∞</td>
+          <td id="dist-C" class="infinity">∞</td>
+          <td id="dist-D" class="infinity">∞</td>
+          <td id="dist-E" class="infinity">∞</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/* ---------- 그래프 데이터 ---------- */
+const graph = {
+  'A': [['B', 4], ['C', 10], ['D', 3]],
+  'B': [['A', 4], ['C', 2], ['E', 1]],
+  'C': [['A', 10], ['B', 2], ['E', 5]],
+  'D': [['A', 3], ['E', 2]],
+  'E': [['B', 1], ['C', 5], ['D', 2]]
+};
+
+let distances = {};
+let visited = new Set();
+let currentNode = null;
+let isRunning = false;
+let prev = {}; // 최단 경로 트리 부모
+
+/* ---------- Min-Heap (PriorityQueue) ---------- */
+class MinHeap {
+  constructor(cmp) { this._h = []; this._cmp = cmp || ((a,b)=>a-b); }
+  size() { return this._h.length; }
+  peek() { return this._h[0]; }
+  clear() { this._h = []; }
+  push(v) { this._h.push(v); this._up(this._h.length-1); }
+  pop() {
+    if (this._h.length === 0) return undefined;
+    const top = this._h[0];
+    const last = this._h.pop();
+    if (this._h.length) { this._h[0] = last; this._down(0); }
+    return top;
+  }
+  _up(i){
+    const h=this._h, cmp=this._cmp;
+    while(i>0){
+      const p=(i-1)>>1;
+      if (cmp(h[i],h[p])>=0) break;
+      [h[i],h[p]]=[h[p],h[i]];
+      i=p;
+    }
+  }
+  _down(i){
+    const h=this._h, cmp=this._cmp, n=h.length;
+    while(true){
+      let l=i*2+1, r=l+1, s=i;
+      if (l<n && cmp(h[l],h[s])<0) s=l;
+      if (r<n && cmp(h[r],h[s])<0) s=r;
+      if (s===i) break;
+      [h[i],h[s]]=[h[s],h[i]];
+      i=s;
+    }
+  }
+}
+const pq = new MinHeap((a,b)=> a.dist - b.dist);
+
+/* ---------- 위치 계산 & 자동 레이아웃 ---------- */
+function getNodeCenter(nodeId) {
+  const container = document.getElementById('graphContainer');
+  const nodeEl = document.querySelector(`.node[data-node="${nodeId}"]`);
+  if (!container || !nodeEl) return { x: 0, y: 0 };
+  const cRect = container.getBoundingClientRect();
+  const nRect = nodeEl.getBoundingClientRect();
+  return {
+    x: (nRect.left - cRect.left) + nRect.width / 2,
+    y: (nRect.top - cRect.top) + nRect.height / 2
+  };
+}
+
+function layoutEdges() {
+  const svg = document.getElementById('graphSvg');
+  const container = document.getElementById('graphContainer');
+  if (!svg || !container) return;
+
+  const cRect = container.getBoundingClientRect();
+  svg.setAttribute('width', cRect.width);
+  svg.setAttribute('height', cRect.height);
+
+  // 간선 선분
+  document.querySelectorAll('[data-edge]').forEach(line => {
+    const edge = line.getAttribute('data-edge');
+    if (!edge) return;
+    const [from, to] = edge.split('-');
+    const p1 = getNodeCenter(from);
+    const p2 = getNodeCenter(to);
+    line.setAttribute('x1', p1.x);
+    line.setAttribute('y1', p1.y);
+    line.setAttribute('x2', p2.x);
+    line.setAttribute('y2', p2.y);
+  });
+
+  // 가중치 라벨(간선 중간 지점 배치)
+  document.querySelectorAll('.edge-weight[data-weight]').forEach(label => {
+    const key = label.getAttribute('data-weight');
+    if (!key) return;
+    const [from, to] = key.split('-');
+    const p1 = getNodeCenter(from);
+    const p2 = getNodeCenter(to);
+    const midX = (p1.x + p2.x) / 2;
+    const midY = (p1.y + p2.y) / 2;
+    label.style.transform = `translate(${midX}px, ${midY}px) translate(-50%, -50%)`;
+  });
+}
+
+/* ---------- 간선 클래스 토글 유틸 ---------- */
+function edgeEls(from, to) {
+  return [
+    document.querySelector(`[data-edge="${from}-${to}"]`),
+    document.querySelector(`[data-edge="${to}-${from}"]`)
+  ];
+}
+function addEdgeClass(from, to, cls) {
+  edgeEls(from,to).forEach(el => el && el.classList.add(cls));
+}
+function removeEdgeClass(from, to, cls) {
+  edgeEls(from,to).forEach(el => el && el.classList.remove(cls));
+}
+
+/* ---------- PQ 패널 렌더 ---------- */
+function renderPQ() {
+  const box = document.getElementById('pqList');
+  if (!box) return;
+  const items = pq._h.slice().sort((a,b)=>a.dist-b.dist);
+  box.innerHTML = items.map(it =>
+    `<span style="border:1px solid #ddd; border-radius:14px; padding:4px 10px; background:#f8f8ff;">
+      ${it.node}: ${it.dist}
+     </span>`
+  ).join('');
+}
+
+/* ---------- 알고리즘 제어 ---------- */
+function startAlgorithm() {
+  resetGraph(false); // 초기화(버튼/알림 제외)
+  isRunning = true;
+
+  // 시작 정점 초기 상태
+  pq.clear();
+  pq.push({ node: 'A', dist: 0 });
+  const startEl = document.querySelector('[data-node="A"]');
+  if (startEl) startEl.classList.add('current');
+
+  document.getElementById('nextBtn').disabled = false;
+  document.querySelector('button[onclick="startAlgorithm()"]').disabled = true;
+
+  layoutEdges();
+  renderPQ();
+}
+
+function nextStep() {
+  if (!isRunning) return;
+
+  // 이전 current 표시 정리
+  document.querySelectorAll('.node.current').forEach(n => n.classList.remove('current'));
+
+  // PQ에서 아직 방문 안 된 최단거리 정점 꺼내기
+  let picked = null;
+  while (pq.size() > 0) {
+    const top = pq.pop();
+    if (!visited.has(top.node)) { picked = top; break; }
+  }
+
+  if (!picked) { finishAlgorithm(); return; }
+
+  const u = picked.node, du = picked.dist;
+
+  // 방문 확정
+  visited.add(u);
+  const uEl = document.querySelector(`.node[data-node="${u}"]`);
+  if (uEl) { uEl.classList.add('visited'); uEl.classList.add('current'); }
+  currentNode = u;
+
+  // 방문 확정 간선 시각화 (부모 간선)
+  if (prev[u]) {
+    removeEdgeClass(prev[u], u, 'queued');   // 점선 해제
+    addEdgeClass(prev[u], u, 'selected');    // 굵은 주황 강조
+    setTimeout(() => removeEdgeClass(prev[u], u, 'selected'), 800);
+  }
+
+  // 이웃 완화(relax)
+  (graph[u] || []).forEach(([v, w]) => {
+    const alt = du + w;
+    if (alt < distances[v]) {
+      distances[v] = alt;
+      prev[v] = u;
+      pq.push({ node: v, dist: alt });
+      addEdgeClass(u, v, 'queued'); // 큐에 들어간 간선은 점선
+    }
+  });
+
+  updateDistanceTable();
+  layoutEdges();
+  renderPQ();
+
+  if (pq.size() === 0) finishAlgorithm();
+}
+
+function finishAlgorithm() {
+  isRunning = false;
+  document.getElementById('nextBtn').disabled = true;
+  document.querySelector('button[onclick="startAlgorithm()"]').disabled = false;
+  alert('다익스트라 알고리즘이 완료되었습니다! 모든 정점까지의 최단 거리를 찾았습니다.');
+}
+
+function resetGraph(showButtons = true) {
+  // 노드 리셋
+  document.querySelectorAll('.node').forEach(node => {
+    node.className = 'node';
+    if (node.dataset.node === 'A') node.classList.add('start');
+  });
+
+  // 간선 리셋 (색/두께/클래스)
+  document.querySelectorAll('line[data-edge]').forEach(edge => {
+    edge.setAttribute('stroke', '#ddd');
+    edge.setAttribute('stroke-width', '3');
+    edge.classList.remove('queued','selected');
+  });
+
+  // 상태 리셋
+  distances = { 'A': 0, 'B': Infinity, 'C': Infinity, 'D': Infinity, 'E': Infinity };
+  visited.clear();
+  currentNode = null;
+  isRunning = false;
+  prev = {};
+  pq.clear();
+
+  if (showButtons) {
+    document.getElementById('nextBtn').disabled = true;
+    const startBtn = document.querySelector('button[onclick="startAlgorithm()"]');
+    if (startBtn) startBtn.disabled = false;
+  }
+
+  updateDistanceTable();
+  layoutEdges();
+  renderPQ();
+}
+
+/* ---------- 테이블 갱신 ---------- */
+function updateDistanceTable() {
+  Object.keys(distances).forEach(node => {
+    const cell = document.getElementById(`dist-${node}`);
+    if (!cell) return;
+    const d = distances[node];
+    if (d === Infinity) {
+      cell.textContent = '∞';
+      cell.className = 'infinity';
+    } else {
+      cell.textContent = d;
+      cell.className = visited.has(node) ? '' : 'current-distance';
+    }
+  });
+}
+
+/* ---------- 초기 배치 ---------- */
+window.addEventListener('DOMContentLoaded', () => {
+  layoutEdges();
+  window.addEventListener('resize', layoutEdges);
+  setTimeout(layoutEdges, 0);
+});
+updateDistanceTable();
+</script>
+</body>
+</html>
